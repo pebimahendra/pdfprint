@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MyBPR Digital PDF Print</title>
+  <link href="dist.css" rel="stylesheet">
+  <script>
+    function getUrlParameter(name) {
+      const url = window.location.href;
+      name = name.replace(/[\[\]]/g, '\\$&');
+      const regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)');
+      const results = regex.exec(url);
+      if (!results) return '';
+      if (!results[2]) return '';
+      return results[2].replace(/\+/g, ' ');
+    }
+
+    function loadPdfContent() {
+      const pdfContent = getUrlParameter('PDF');
+      const filename = getUrlParameter('filename') || 'document';
+
+      if (!pdfContent) {
+        // Try to get content from sessionStorage if URL parameter is not available
+        const storedContent = sessionStorage.getItem('pdfContent');
+        const storedFilename = sessionStorage.getItem('pdfFilename');
+        
+        if (storedContent) {
+          document.getElementById('content').innerHTML = storedContent;
+          document.title = storedFilename || 'document';
+          setTimeout(() => {
+            window.print();
+          }, 2000);
+          return;
+        }
+        
+        document.getElementById('content').innerHTML = 'No content provided';
+        return;
+      }
+
+      try {
+        // Decode the URL-encoded content directly
+        let decodedContent = decodeURIComponent(pdfContent);
+
+        // Insert content without modifying the HTML format
+        document.getElementById('content').innerHTML = decodedContent;
+        document.title = filename || 'document';
+        setTimeout(() => {
+          window.print();
+        }, 2000);
+      } catch (error) {
+        console.error('Error details:', error);
+        document.getElementById('content').innerHTML = 'Error processing content: ' + error.message;
+      }
+    }
+  </script>
+</head>
+<body onload="loadPdfContent()">
+  <div id="content" class="p-4"></div>
+  <script>
+    function addPageNumbers() {
+      const style = document.createElement('style');
+      style.textContent = `
+        @media print {
+          @page {
+            margin: 1cm;
+            @bottom-right {
+              content: counter(page);
+            }
+          }
+          body {
+            counter-reset: page;
+          }
+          .print-page {
+            counter-increment: page;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    window.addEventListener('load', () => {
+      addPageNumbers();
+      window.addEventListener('beforeprint', () => {
+        const pageHeight = 11.7 * 96; // A4 height in pixels (11.7 inches * 96 DPI)
+        const contentHeight = document.getElementById('content').offsetHeight;
+        const totalPages = Math.ceil(contentHeight / pageHeight);
+        document.documentElement.style.setProperty('--total-pages', totalPages);
+      });
+    });
+  </script>
+</body>
+</html>
